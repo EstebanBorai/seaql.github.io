@@ -1,0 +1,733 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+    <id>https://www.sea-ql.org/SeaORM/blog</id>
+    <title>SeaORM 🐚 An async &amp; dynamic ORM for Rust Blog</title>
+    <updated>2022-04-04T00:00:00.000Z</updated>
+    <generator>https://github.com/jpmonette/feed</generator>
+    <link rel="alternate" href="https://www.sea-ql.org/SeaORM/blog"/>
+    <subtitle>SeaORM 🐚 An async &amp; dynamic ORM for Rust Blog</subtitle>
+    <icon>https://www.sea-ql.org/SeaORM/img/favicon.ico</icon>
+    <entry>
+        <title type="html"><![CDATA[Introducing StarfishQL]]></title>
+        <id>2022-04-04-introducing-starfish-ql</id>
+        <link href="https://www.sea-ql.org/SeaORM/blog/2022-04-04-introducing-starfish-ql"/>
+        <updated>2022-04-04T00:00:00.000Z</updated>
+        <summary type="html"><![CDATA[We are pleased to introduce StarfishQL to the Rust community today. StarfishQL is a graph database and query engine to enable graph analysis and visualization on the web. It is an experimental project, with its primary purpose to explore the dependency network of Rust crates published on crates.io.]]></summary>
+        <content type="html"><![CDATA[<p>We are pleased to introduce <a href="https://www.sea-ql.org/StarfishQL/">StarfishQL</a> to the Rust community today. StarfishQL is a graph database and query engine to enable graph analysis and visualization on the web. It is an experimental project, with its primary purpose to explore the dependency network of Rust crates published on crates.io.</p><h2>Motivation</h2><p>StarfishQL is a framework for providing a graph database and a graph query engine that interacts with it.</p><p>A concrete example (Freeport) involving the graph of crate dependency on <a href="https://crates.io/">crates.io</a> is used for illustration. With this example, you can see StarfishQL in action.</p><p>At the end of the day, we&#x27;re interested in performing graph analysis, that is to extract meaningful information out of plain graph data. To achieve that, we believe that visualization is a crucial aid.</p><p>StarfishQL&#x27;s query engine is designed to be able to incorporate different forms of visualization by using a flexible query language. However, the development of the project has been centred around the following, as showcased in our <a href="https://starfish-ql.sea-ql.org/">demo apps</a>.</p><div class="row" id="colourful-graphs"><div class="col col--6 margin-bottom--md"><div class="card item shadow--lw"><div class="card__header"><a href="https://starfish-ql.sea-ql.org/graph.html"><h3>Top-N Dependencies</h3></a></div><div class="card__body"><img src="https://www.sea-ql.org/StarfishQL/img/graph.png"/><p>Traverse the dependency graph in the normal direction starting from the N most connected nodes.</p></div></div></div><div class="col col--6 margin-bottom--md"><div class="card item shadow--lw"><div class="card__header"><a href="https://starfish-ql.sea-ql.org/tree.html"><h3>Dependencies &amp; Dependents</h3></a></div><div class="card__body"><img src="https://www.sea-ql.org/StarfishQL/img/tree.png"/><p>Traverse the dependency tree in both forward and reverse directions starting from a particular node.</p></div></div></div></div><h2>Design</h2><p>In general, a query engine takes input queries written in a specific query language (e.g. SQL statements), performs the necessary operations in the database, and then outputs the data of interest to the user application. You may also view a query engine as an abstraction layer such that the user can design queries simply in the supported query language and let the query engine do the rest.</p><p>In the case of a graph query engine, the output data is a graph (<a href="https://en.wikipedia.org/wiki/Graph_(abstract_data_type)">wiki</a>).</p><p><img src="https://www.sea-ql.org/StarfishQL/img/graph_query_engine_overview.png" alt="Graph query engine overview"/></p><p>In the case of StarfishQL, the query language is a custom language we defined in the JSON format, which enables the engine to be highly accessible and portable.</p><h2>Implementation</h2><p>In the example of Freeport, StarfishQL consists of the following three components.</p><h3>Graph Query Engine</h3><p>As a core component of StarfishQL, the graph query engine is a Rust backend application powered by the <a href="https://crates.io/crates/rocket">Rocket</a> web framework and the <a href="https://github.com/SeaQL">SeaQL ecosystem</a>.</p><p>The engine listens at the following endpoints for the corresponding operation:</p><ul><li><code>/schema</code> - <a href="https://www.sea-ql.org/StarfishQL/docs/architecture-of-graph-query-engine/defining-graph-schema">Define/Reset the schema</a></li><li><code>/mutate</code> - <a href="https://www.sea-ql.org/StarfishQL/docs/architecture-of-graph-query-engine/mutate-operations">Perform mutate operations</a></li><li><code>/query</code> - <a href="https://www.sea-ql.org/StarfishQL/docs/architecture-of-graph-query-engine/querying-graph-data">Perform queries</a></li></ul><p>You could also invoke the endpoints above programmatically.</p><p>Graph data are stored in a relational database:</p><ul><li><a href="https://www.sea-ql.org/StarfishQL/docs/architecture-of-graph-query-engine/data-storage">Metadata</a> - Definition of each entity and relation, e.g. attributes of crates and dependency</li><li><a href="https://www.sea-ql.org/StarfishQL/docs/architecture-of-graph-query-engine/data-storage#storage-of-entities">Node Data</a> - An instance of an entity, e.g. crate name and version number</li><li><a href="https://www.sea-ql.org/StarfishQL/docs/architecture-of-graph-query-engine/data-storage#storage-of-relations">Edge Data</a> - An instance of a relation, e.g. one crate depends on another</li></ul><h3>crates.io Crawler</h3><p>To obtain the crate data to insert into the database, we used a <a href="https://www.sea-ql.org/StarfishQL/docs/architecture-of-crates-io-crawler/overview">fast, non-disruptive crawler</a> on a local clone of the public index repo of crates.io.</p><h3>Graph Visualization</h3><p>We used <a href="https://d3js.org/"><code>d3.js</code></a> to create force-directed graphs to display the results. The two <a href="#colourful-graphs">colourful graphs</a> above are such products.</p><h2>Findings</h2><p>Here are some interesting findings we made during the process.</p><div class="row"><div class="col col--12 margin-bottom--md"><div class="card item shadow--lw"><div class="card__header"><h3>Top-10 Dependencies</h3></div><div class="card__body"><p>List of top 10 crates order by different <a href="https://www.sea-ql.org/StarfishQL/docs/architecture-of-graph-query-engine/calculating-node-connectivity/#weight-decay-factors">decay modes</a>.</p><div class="row row--no-gutters"><div class="col col--4 padding-left--none padding-right--none"><table><thead><tr><th colspan="2">Decay Mode: Immediate / Simple Connectivity</th></tr><tr><th>crate</th><th>connectivity</th></tr></thead><tbody><tr><td><a href="https://crates.io/crates/serde" target="_blank">serde</a></td><td>17,441</td></tr><tr><td><a href="https://crates.io/crates/serde_json" target="_blank">serde_json</a></td><td>10,528</td></tr><tr><td><a href="https://crates.io/crates/log" target="_blank">log</a></td><td>9,220</td></tr><tr><td><a href="https://crates.io/crates/clap" target="_blank">clap</a></td><td>6,323</td></tr><tr><td><a href="https://crates.io/crates/thiserror" target="_blank">thiserror</a></td><td>5,547</td></tr><tr><td><a href="https://crates.io/crates/rand" target="_blank">rand</a></td><td>5,340</td></tr><tr><td><a href="https://crates.io/crates/futures" target="_blank">futures</a></td><td>5,263</td></tr><tr><td><a href="https://crates.io/crates/lazy_static" target="_blank">lazy_static</a></td><td>5,211</td></tr><tr><td><a href="https://crates.io/crates/tokio" target="_blank">tokio</a></td><td>5,168</td></tr><tr><td><a href="https://crates.io/crates/chrono" target="_blank">chrono</a></td><td>4,794</td></tr></tbody></table></div><div class="col col--4 padding-left--none padding-right--none"><table><thead><tr><th colspan="2">Decay Mode: Medium (.5) / Complex Connectivity</th></tr><tr><th>crate</th><th>connectivity</th></tr></thead><tbody><tr><td><a href="https://crates.io/crates/quote" target="_blank">quote</a></td><td>4,126</td></tr><tr><td><a href="https://crates.io/crates/syn" target="_blank">syn</a></td><td>4,069</td></tr><tr><td><a href="https://crates.io/crates/pure-rust-locales" target="_blank">pure-rust-locales</a></td><td>4,067</td></tr><tr><td><a href="https://crates.io/crates/reqwest" target="_blank">reqwest</a></td><td>3,950</td></tr><tr><td><a href="https://crates.io/crates/proc-macro2" target="_blank">proc-macro2</a></td><td>3,743</td></tr><tr><td><a href="https://crates.io/crates/num_threads" target="_blank">num_threads</a></td><td>3,555</td></tr><tr><td><a href="https://crates.io/crates/value-bag" target="_blank">value-bag</a></td><td>3,506</td></tr><tr><td><a href="https://crates.io/crates/futures-macro" target="_blank">futures-macro</a></td><td>3,455</td></tr><tr><td><a href="https://crates.io/crates/time-macros" target="_blank">time-macros</a></td><td>3,450</td></tr><tr><td><a href="https://crates.io/crates/thiserror-impl" target="_blank">thiserror-impl</a></td><td>3,416</td></tr></tbody></table></div><div class="col col--4 padding-left--none padding-right--none"><table><thead><tr><th colspan="2">Decay Mode: None / Compound Connectivity</th></tr><tr><th>crate</th><th>connectivity</th></tr></thead><tbody><tr><td><a href="https://crates.io/crates/unicode-xid" target="_blank">unicode-xid</a></td><td>54,982</td></tr><tr><td><a href="https://crates.io/crates/proc-macro2" target="_blank">proc-macro2</a></td><td>54,949</td></tr><tr><td><a href="https://crates.io/crates/quote" target="_blank">quote</a></td><td>54,910</td></tr><tr><td><a href="https://crates.io/crates/syn" target="_blank">syn</a></td><td>54,744</td></tr><tr><td><a href="https://crates.io/crates/rustc-std-workspace-core" target="_blank">rustc-std-workspace-core</a></td><td>51,650</td></tr><tr><td><a href="https://crates.io/crates/libc" target="_blank">libc</a></td><td>51,645</td></tr><tr><td><a href="https://crates.io/crates/serde_derive" target="_blank">serde_derive</a></td><td>51,056</td></tr><tr><td><a href="https://crates.io/crates/serde" target="_blank">serde</a></td><td>51,054</td></tr><tr><td><a href="https://crates.io/crates/jobserver" target="_blank">jobserver</a></td><td>50,567</td></tr><tr><td><a href="https://crates.io/crates/cc" target="_blank">cc</a></td><td>50,566</td></tr></tbody></table></div></div><p>If we look at <i>Decay Mode: Immediate</i>, where the connectivity is simply the <b>number of immediate dependants</b>, we can see that <a href="https://crates.io/crates/serde" target="_blank"><code>serde</code></a> and <a href="https://crates.io/crates/serde_json" target="_blank"><code>serde_json</code></a> are at the top. I guess that supports our decision of defining the query language in JSON.</p><p><i>Decay Mode: None</i> tells another interesting story: when the connectivity is the <b>entire tree of dependants</b>, we are looking at the really core crates that are nested somewhere deeply inside the most crates. In other words, these are the ones that are built along with the most crates. Under this setting, the utility crates that interacts with the low-level, more fundamental aspects of Rust are ranked higher,like <a href="https://crates.io/crates/quote" target="_blank"><code>quote</code></a> with syntax trees, <a href="https://crates.io/crates/proc-macro2" target="_blank"><code>proc-macro2</code></a> with procedural macros, and <a href="https://crates.io/crates/unicode-xid" target="_blank"><code>unicode-xid</code></a> with Unicode checking.</p></div></div></div></div><div class="row"><div class="col col--12 margin-bottom--md"><div class="card item shadow--lw"><div class="card__header"><h3>Number of crates without Dependencies</h3></div><div class="card__body"><p>19,369 out of 79,972 crates, or 24% of the crates, do not depend on any crates.</p><p>e.g.&amp;nbsp; <a href="https://crates.io/crates/a" target="_blank">a</a>,&amp;nbsp; <a href="https://crates.io/crates/a-" target="_blank">a-</a>,&amp;nbsp; <a href="https://crates.io/crates/a0" target="_blank">a0</a>,&amp;nbsp; ...,&amp;nbsp; <a href="https://crates.io/crates/zyx_test" target="_blank">zyx_test</a>,&amp;nbsp; <a href="https://crates.io/crates/zz-buffer" target="_blank">zz-buffer</a>,&amp;nbsp; <a href="https://crates.io/crates/z_table" target="_blank">z_table</a></p><p>In other words, about 76% of the crates are standing on the shoulders of giants! 💪</p><img src="https://www.sea-ql.org/StarfishQL/img/crate_without_dependency_count.png"/><img src="https://www.sea-ql.org/StarfishQL/img/crate_without_dependency_percentage.png"/></div></div></div></div><div class="row"><div class="col col--12 margin-bottom--md"><div class="card item shadow--lw"><div class="card__header"><h3>Number of crates without Dependants</h3></div><div class="card__body"><p>53,910 out of 79,972 crates, or 67% of the crates, have no dependants, i.e. no other crates depend on them.</p><p>e.g.&amp;nbsp; <a href="https://crates.io/crates/a" target="_blank">a</a>,&amp;nbsp; <a href="https://crates.io/crates/a-" target="_blank">a-</a>,&amp;nbsp; <a href="https://crates.io/crates/a-bot" target="_blank">a-bot</a>,&amp;nbsp; ...,&amp;nbsp; <a href="https://crates.io/crates/zzp-tools" target="_blank">zzp-tools</a>,&amp;nbsp; <a href="https://crates.io/crates/zzz" target="_blank">zzz</a>,&amp;nbsp; <a href="https://crates.io/crates/z_table" target="_blank">z_table</a></p><p>We imagine many of those crates are binaries/executables, if only we could figure out a way to check that... 🤔</p></div></div></div></div><p><em>As of March 30, 2022</em></p><h2>Conclusion</h2><p>StarfishQL allows flexible and portable definition, manipulation, retrieval, and visualization of graph data.</p><p>The graph query engine built in Rust provides a nice interface for any web applications to access data in the relational graph database with stable performance and memory safety.</p><p>Admittedly, StarfishQL is still in its infancy, so every detail in the design and implementation is subject to change. Fortunately, the good thing about this is, like all other open-source projects developed by brilliant Rust developers, you can contribute to it if you also find the concept interesting. With its addition to the <a href="https://www.sea-ql.org/SeaORM/">SeaQL ecosystem</a>, together we are one step closer to the vision of Rust for data engineering.</p><h2>People</h2><p>StarfishQL is created by the following SeaQL team members:</p><div class="container"><div class="row"><div class="col col--3 margin-bottom--md"><div class="avatar"><a class="avatar__photo-link avatar__photo avatar__photo--sm" href="https://github.com/tyt2y3"><img src="https://avatars.githubusercontent.com/u/1782664?v=4"/></a><div class="avatar__intro"><div class="avatar__name">Chris Tsang</div></div></div></div><div class="col col--3 margin-bottom--md"><div class="avatar"><a class="avatar__photo-link avatar__photo avatar__photo--sm" href="https://github.com/billy1624"><img src="https://avatars.githubusercontent.com/u/30400950?v=4"/></a><div class="avatar__intro"><div class="avatar__name">Billy Chan</div></div></div></div><div class="col col--3 margin-bottom--md"><div class="avatar"><a class="avatar__photo-link avatar__photo avatar__photo--sm" href="https://github.com/shpun817"><img src="https://avatars.githubusercontent.com/u/47468266?v=4"/></a><div class="avatar__intro"><div class="avatar__name">Sanford Pun</div></div></div></div></div></div><h2>Contributing</h2><p>We are super excited to be selected as a Google Summer of Code 2022 mentor organization!</p><p>StarfishQL is one of the <a href="https://github.com/SeaQL/summer-of-code/blob/main/2022/README.md#2-a-graph-database-and-query-engine-codename-starfishql-for-graph-analysis-and-visualization">GSoC project ideas</a> that opens for development proposals. Join us on GSoC 2022 by following the instructions on <a href="https://github.com/SeaQL/summer-of-code/blob/main/2022/CONTRIBUTING.md">GSoC Contributing Guide</a>.</p>]]></content>
+        <author>
+            <name>SeaQL Team</name>
+            <uri>https://github.com/SeaQL</uri>
+        </author>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[What's new in SeaORM 0.7.0]]></title>
+        <id>2022-03-26-whats-new-in-0.7.0</id>
+        <link href="https://www.sea-ql.org/SeaORM/blog/2022-03-26-whats-new-in-0.7.0"/>
+        <updated>2022-03-26T00:00:00.000Z</updated>
+        <summary type="html"><![CDATA[🎉 We are pleased to release SeaORM 0.7.0 today! Here are some feature highlights 🌟:]]></summary>
+        <content type="html"><![CDATA[<p>🎉 We are pleased to release SeaORM <a href="https://github.com/SeaQL/sea-orm/releases/tag/0.7.0"><code>0.7.0</code></a> today! Here are some feature highlights 🌟:</p><h2>Update ActiveModel by JSON</h2><p>[<a href="https://github.com/SeaQL/sea-orm/pull/492">#492</a>] If you want to save user input into the database you can easily convert JSON value into ActiveModel.</p><pre><code class="language-rust">#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
+#[sea_orm(table_name = &quot;fruit&quot;)]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    #[serde(skip_deserializing)] // Skip deserializing
+    pub id: i32,
+    pub name: String,
+    pub cake_id: Option&lt;i32&gt;,
+}
+</code></pre><p>Set the attributes in ActiveModel with <code>set_from_json</code> method.</p><pre><code class="language-rust">// A ActiveModel with primary key set
+let mut fruit = fruit::ActiveModel {
+    id: ActiveValue::Set(1),
+    name: ActiveValue::NotSet,
+    cake_id: ActiveValue::NotSet,
+};
+
+// Note that this method will not alter the primary key values in ActiveModel
+fruit.set_from_json(json!({
+    &quot;id&quot;: 8,
+    &quot;name&quot;: &quot;Apple&quot;,
+    &quot;cake_id&quot;: 1,
+}))?;
+
+assert_eq!(
+    fruit,
+    fruit::ActiveModel {
+        id: ActiveValue::Set(1),
+        name: ActiveValue::Set(&quot;Apple&quot;.to_owned()),
+        cake_id: ActiveValue::Set(Some(1)),
+    }
+);
+</code></pre><p>Create a new ActiveModel from JSON value with the <code>from_json</code> method.</p><pre><code class="language-rust">let fruit = fruit::ActiveModel::from_json(json!({
+    &quot;name&quot;: &quot;Apple&quot;,
+}))?;
+
+assert_eq!(
+    fruit,
+    fruit::ActiveModel {
+        id: ActiveValue::NotSet,
+        name: ActiveValue::Set(&quot;Apple&quot;.to_owned()),
+        cake_id: ActiveValue::NotSet,
+    }
+);
+</code></pre><div class="row"><div class="col col--6 margin-bottom--md">Proposed by: <br/><br/><div class="avatar"><a class="avatar__photo-link avatar__photo avatar__photo--sm" href="https://github.com/qyihua"><img src="https://avatars.githubusercontent.com/u/13034668?v=4"/></a><div class="avatar__intro"><div class="avatar__name">qltk</div></div></div></div><div class="col col--6 margin-bottom--md">Contributed by: <br/><br/><div class="avatar"><a class="avatar__photo-link avatar__photo avatar__photo--sm" href="https://github.com/billy1624"><img src="https://avatars.githubusercontent.com/u/30400950?v=4"/></a><div class="avatar__intro"><div class="avatar__name">Billy Chan</div></div></div></div></div><h2>Support <code>time</code> crate in Model</h2><p>[<a href="https://github.com/SeaQL/sea-orm/pull/602">#602</a>] You can define datetime column in Model with <code>time</code> crate. You can migrate your Model originally defined in <code>chrono</code> to <code>time</code> crate.</p><p>Model defined in <code>chrono</code> crate.</p><pre><code class="language-rust">use sea_orm::entity::prelude::*;
+
+#[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
+#[sea_orm(table_name = &quot;transaction_log&quot;)]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    pub date: Date, // chrono::NaiveDate
+    pub time: Time, // chrono::NaiveTime
+    pub date_time: DateTime, // chrono::NaiveDateTime
+    pub date_time_tz: DateTimeWithTimeZone, // chrono::DateTime&lt;chrono::FixedOffset&gt;
+}
+
+#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+pub enum Relation {}
+
+impl ActiveModelBehavior for ActiveModel {}
+</code></pre><p>Model defined in <code>time</code> crate.</p><pre><code class="language-rust">use sea_orm::entity::prelude::*;
+
+#[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
+#[sea_orm(table_name = &quot;transaction_log&quot;)]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    pub date: TimeDate, // time::Date
+    pub time: TimeTime, // time::Time
+    pub date_time: TimeDateTime, // time::PrimitiveDateTime
+    pub date_time_tz: TimeDateTimeWithTimeZone, // time::OffsetDateTime
+}
+
+#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+pub enum Relation {}
+
+impl ActiveModelBehavior for ActiveModel {}
+</code></pre><div class="row"><div class="col col--6 margin-bottom--md">Proposed by: <br/><br/><div class="avatar"><a class="avatar__photo-link avatar__photo avatar__photo--sm" href="https://github.com/tasn"><img src="https://avatars.githubusercontent.com/u/108670?v=4"/></a><div class="avatar__intro"><div class="avatar__name">Tom Hacohen</div></div></div></div><div class="col col--6 margin-bottom--md">Contributed by: <br/><br/><div class="avatar"><a class="avatar__photo-link avatar__photo avatar__photo--sm" href="https://github.com/billy1624"><img src="https://avatars.githubusercontent.com/u/30400950?v=4"/></a><div class="avatar__intro"><div class="avatar__name">Billy Chan</div></div></div></div></div><h2>Delete by Primary Key</h2><p>[<a href="https://github.com/SeaQL/sea-orm/pull/590">#590</a>] Instead of selecting <code>Model</code> from the database then deleting it. You could also delete a row from database directly by its primary key.</p><pre><code class="language-rust">let res: DeleteResult = Fruit::delete_by_id(38).exec(db).await?;
+assert_eq!(res.rows_affected, 1);
+</code></pre><div class="row"><div class="col col--6 margin-bottom--md">Proposed by: <br/><br/><div class="avatar"><a class="avatar__photo-link avatar__photo avatar__photo--sm" href="https://github.com/ShouvikGhosh2048"><img src="https://avatars.githubusercontent.com/u/91585022?v=4"/></a><div class="avatar__intro"><div class="avatar__name">Shouvik Ghosh</div></div></div></div><div class="col col--6 margin-bottom--md">Contributed by: <br/><br/><div class="avatar"><a class="avatar__photo-link avatar__photo avatar__photo--sm" href="https://github.com/Ilqjx"><img src="https://avatars.githubusercontent.com/u/53934234?v=4"/></a><div class="avatar__intro"><div class="avatar__name">Zhenwei Guo</div></div></div></div></div><h2>Paginate Results from Raw Query</h2><p>[<a href="https://github.com/SeaQL/sea-orm/pull/617">#617</a>] You can paginate <a href="https://docs.rs/sea-orm/0.6.0/sea_orm/struct.SelectorRaw.html"><code>SelectorRaw</code></a> and fetch <code>Model</code> in batch.</p><pre><code class="language-rust">let mut cake_pages = cake::Entity::find()
+    .from_raw_sql(Statement::from_sql_and_values(
+        DbBackend::Postgres,
+        r#&quot;SELECT &quot;cake&quot;.&quot;id&quot;, &quot;cake&quot;.&quot;name&quot; FROM &quot;cake&quot; WHERE &quot;id&quot; = $1&quot;#,
+        vec![1.into()],
+    ))
+    .paginate(db, 50);
+ 
+while let Some(cakes) = cake_pages.fetch_and_next().await? {
+    // Do something on cakes: Vec&lt;cake::Model&gt;
+}
+</code></pre><div class="row"><div class="col col--6 margin-bottom--md">Proposed by: <br/><br/><div class="avatar"><a class="avatar__photo-link avatar__photo avatar__photo--sm" href="https://github.com/cemoktra"><img src="https://avatars.githubusercontent.com/u/15634263?v=4"/></a><div class="avatar__intro"><div class="avatar__name">Bastian</div></div></div></div><div class="col col--6 margin-bottom--md">Contributed by: <br/><br/><div class="avatar"><a class="avatar__photo-link avatar__photo avatar__photo--sm" href="https://github.com/shinbunbun"><img src="https://avatars.githubusercontent.com/u/34409044?v=4"/></a><div class="avatar__intro"><div class="avatar__name">shinbunbun</div></div></div></div></div><h2>Create Database Index</h2><p>[<a href="https://github.com/SeaQL/sea-orm/pull/593">#593</a>] To create indexes in database instead of writing <a href="https://docs.rs/sea-query/*/sea_query/index/struct.IndexCreateStatement.html"><code>IndexCreateStatement</code></a> manually, you can derive it from <code>Entity</code> using <a href="https://docs.rs/sea-orm/0.5/sea_orm/schema/struct.Schema.html#method.create_index_from_entity"><code>Schema::create_index_from_entity</code></a>.</p><pre><code class="language-rust">use sea_orm::{sea_query, tests_cfg::*, Schema};
+
+let builder = db.get_database_backend();
+let schema = Schema::new(builder);
+
+let stmts = schema.create_index_from_entity(indexes::Entity);
+assert_eq!(stmts.len(), 2);
+
+let idx = sea_query::Index::create()
+    .name(&quot;idx-indexes-index1_attr&quot;)
+    .table(indexes::Entity)
+    .col(indexes::Column::Index1Attr)
+    .to_owned();
+assert_eq!(builder.build(&amp;stmts[0]), builder.build(&amp;idx));
+
+let idx = sea_query::Index::create()
+    .name(&quot;idx-indexes-index2_attr&quot;)
+    .table(indexes::Entity)
+    .col(indexes::Column::Index2Attr)
+    .to_owned();
+assert_eq!(builder.build(&amp;stmts[1]), builder.build(&amp;idx));
+</code></pre><div class="row"><div class="col col--6 margin-bottom--md">Proposed by: <br/><br/><div class="avatar"><a class="avatar__photo-link avatar__photo avatar__photo--sm" href="https://github.com/grtlr"><img src="https://avatars.githubusercontent.com/u/3404250?v=4"/></a><div class="avatar__intro"><div class="avatar__name">Jochen Görtler</div></div></div></div><div class="col col--6 margin-bottom--md">Contributed by: <br/><br/><div class="avatar"><a class="avatar__photo-link avatar__photo avatar__photo--sm" href="https://github.com/nickb937"><img src="https://avatars.githubusercontent.com/u/1443207?v=4"/></a><div class="avatar__intro"><div class="avatar__name">Nick Burrett</div></div></div></div></div><h2>Sponsor</h2><p>Our <a href="https://github.com/sponsors/SeaQL">GitHub Sponsor</a> profile is up! If you feel generous, a small donation will be greatly appreciated.</p><p>A big shout out to our sponsors 😇:</p><div class="row"><div class="col col--6 margin-bottom--md"><div class="avatar"><a class="avatar__photo-link avatar__photo avatar__photo--sm" href="https://github.com/Sytten"><img src="https://avatars.githubusercontent.com/u/2366731?v=4"/></a><div class="avatar__intro"><div class="avatar__name">Émile Fugulin</div></div></div></div><div class="col col--6 margin-bottom--md"><div class="avatar"><a class="avatar__photo-link avatar__photo avatar__photo--sm" href="https://github.com/exzachlyvv"><img src="https://avatars.githubusercontent.com/u/46034847?v=4"/></a><div class="avatar__intro"><div class="avatar__name">Zachary Vander Velden</div></div></div></div><div class="col col--6 margin-bottom--md"><div class="avatar"><a class="avatar__photo-link avatar__photo avatar__photo--sm" href="https://github.com/deansheather"><img src="https://avatars.githubusercontent.com/u/11241812?v=4"/></a><div class="avatar__intro"><div class="avatar__name">Dean Sheather</div></div></div></div><div class="col col--6 margin-bottom--md"><div class="avatar"><a class="avatar__photo-link avatar__photo avatar__photo--sm" href="https://github.com/shanesveller"><img src="https://avatars.githubusercontent.com/u/831?v=4"/></a><div class="avatar__intro"><div class="avatar__name">Shane Sveller</div></div></div></div><div class="col col--6 margin-bottom--md"><div class="avatar"><a class="avatar__photo-link avatar__photo avatar__photo--sm" href="https://github.com/sakti"><img src="https://avatars.githubusercontent.com/u/196178?v=4"/></a><div class="avatar__intro"><div class="avatar__name">Sakti Dwi Cahyono</div></div></div></div><div class="col col--6 margin-bottom--md"><div class="avatar"><a class="avatar__photo-link avatar__photo avatar__photo--sm"><img style="width:100%" src="data:image/gif;base64,R0lGODlhAQABAIAAAMLCwgAAACH5BAAAAAAALAAAAAABAAEAAAICRAEAOw=="/></a><div class="avatar__intro"><div class="avatar__name">Unnamed Sponsor</div></div></div></div></div><h2>Community</h2><p>SeaQL is a community driven project. We welcome you to participate, contribute and together build for Rust&#x27;s future.</p><p>Here is the roadmap for SeaORM <a href="https://github.com/SeaQL/sea-orm/milestone/8"><code>0.8.x</code></a>.</p><h2>GSoC 2022</h2><p>We are super excited to be selected as a Google Summer of Code 2022 mentor organization. Prospective contributors, please visit our <a href="https://summerofcode.withgoogle.com/programs/2022/organizations/seaql">GSoC 2022 Organization Profile</a>!</p>]]></content>
+        <author>
+            <name>SeaQL Team</name>
+            <uri>https://github.com/SeaQL</uri>
+        </author>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[Google Summer of Code 2022]]></title>
+        <id>gsoc-2022</id>
+        <link href="https://www.sea-ql.org/SeaORM/blog/gsoc-2022"/>
+        <updated>2022-03-08T00:00:00.000Z</updated>
+        <summary type="html"><![CDATA[GSoC 2022 Organization Profile]]></summary>
+        <content type="html"><![CDATA[<p><a href="https://summerofcode.withgoogle.com/programs/2022/organizations/seaql">GSoC 2022 Organization Profile</a></p><p>We are super excited to be selected as a Google Summer of Code 2022 mentor organization. Thank you everyone in the SeaQL community for your support and adoption!</p><p>In 2020, when we were developing systems in Rust, we noticed a missing piece in the ecosystem: an ORM that integrates well with the Rust async ecosystem. With that in mind, we designed SeaORM to have a familiar API that welcomes developers from node.js, Go, Python, PHP, Ruby and your favourite language.</p><p>The first piece of tool we released is <a href="https://github.com/SeaQL/sea-query">SeaQuery</a>, a query builder with a fluent API. It has a simplified AST that reflects SQL syntax. It frees you from stitching strings together in case you needed to construct SQL dynamically and safely, with the advantages of Rust typings.</p><p>The second piece of tool is <a href="https://github.com/SeaQL/sea-schema">SeaSchema</a>, a schema manager that allows you to discover and manipulate database schema. The type definition of the schema is database-specific and thus reflecting the features of MySQL, Postgres and SQLite tightly.</p><p>The third piece of tool is <a href="https://github.com/SeaQL/sea-orm">SeaORM</a>, an Object Relational Mapper for building web services in Rust, whether it&#x27;s REST, gRPC or GraphQL. We have &quot;async &amp; dynamic&quot; in mind, so developers from dynamic languages can feel right at home.</p><p>But why stops at three?</p><p>This is just the foundation to setup Rust to be the best language for data engineering, and we have many more ideas on our idea list!</p><p>Your participation is what makes us unique; your adoption is what drives us forward.</p><p>Thank you everyone for all your karma, it&#x27;s the Rust community here that makes it possible. We will gladly take the mission to nurture open source developers during GSoC.</p><p>Prospective contributors, stay in touch with us. We also welcome any discussion on the future of the Rust ecosystem and the SeaQL organization.</p><p><a href="https://github.com/SeaQL/summer-of-code/blob/main/2022/README.md">GSoC 2022 Idea List</a></p>]]></content>
+        <author>
+            <name>SeaQL Team</name>
+            <uri>https://github.com/SeaQL</uri>
+        </author>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[What's new in SeaORM 0.6.0]]></title>
+        <id>2022-02-07-whats-new-in-0.6.0</id>
+        <link href="https://www.sea-ql.org/SeaORM/blog/2022-02-07-whats-new-in-0.6.0"/>
+        <updated>2022-02-07T00:00:00.000Z</updated>
+        <summary type="html"><![CDATA[🎉 We are pleased to release SeaORM 0.6.0 today! Here are some feature highlights 🌟:]]></summary>
+        <content type="html"><![CDATA[<p>🎉 We are pleased to release SeaORM <a href="https://github.com/SeaQL/sea-orm/releases/tag/0.6.0"><code>0.6.0</code></a> today! Here are some feature highlights 🌟:</p><h2>Migration</h2><p>[<a href="https://github.com/SeaQL/sea-orm/pull/335">#335</a>] Version control you database schema with migrations written in SeaQuery or in raw SQL. View <a href="/SeaORM/docs/migration/setting-up-migration">migration docs</a> to learn more.</p><ol><li><p>Setup the migration directory by executing <code>sea-orm-cli migrate init</code>.</p><pre><code>migration
+├── Cargo.toml
+├── README.md
+└── src
+    ├── lib.rs
+    ├── m20220101_000001_create_table.rs
+    └── main.rs
+</code></pre></li><li><p>Defines the migration in SeaQuery.</p><pre><code class="language-rust">use sea_schema::migration::prelude::*;
+
+pub struct Migration;
+
+impl MigrationName for Migration {
+    fn name(&amp;self) -&gt; &amp;str {
+        &quot;m20220101_000001_create_table&quot;
+    }
+}
+
+#[async_trait::async_trait]
+impl MigrationTrait for Migration {
+    async fn up(&amp;self, manager: &amp;SchemaManager) -&gt; Result&lt;(), DbErr&gt; {
+        manager
+            .create_table( ... )
+            .await
+    }
+
+    async fn down(&amp;self, manager: &amp;SchemaManager) -&gt; Result&lt;(), DbErr&gt; {
+        manager
+            .drop_table( ... )
+            .await
+    }
+}
+</code></pre></li><li><p>Apply the migration by executing <code>sea-orm-cli migrate</code>.</p><pre><code class="language-shell">$ sea-orm-cli migrate
+Applying all pending migrations
+Applying migration &#x27;m20220101_000001_create_table&#x27;
+Migration &#x27;m20220101_000001_create_table&#x27; has been applied
+</code></pre></li></ol><div class="row"><div class="col col--6 margin-bottom--md">Designed by: <br/><br/><div class="avatar"><a class="avatar__photo-link avatar__photo avatar__photo--sm" href="https://github.com/tyt2y3"><img src="https://avatars.githubusercontent.com/u/1782664?v=4"/></a><div class="avatar__intro"><div class="avatar__name">Chris Tsang</div></div></div></div><div class="col col--6 margin-bottom--md">Contributed by: <br/><br/><div class="avatar"><a class="avatar__photo-link avatar__photo avatar__photo--sm" href="https://github.com/billy1624"><img src="https://avatars.githubusercontent.com/u/30400950?v=4"/></a><div class="avatar__intro"><div class="avatar__name">Billy Chan</div></div></div></div></div><h2>Support DateTimeUtc &amp; DateTimeLocal in Model</h2><p>[<a href="https://github.com/SeaQL/sea-orm/pull/489">#489</a>] Represents database&#x27;s timestamp column in Model with attribute of type <code>DateTimeLocal</code> (<code>chrono::DateTime&lt;Local&gt;</code>) or <code>DateTimeUtc</code> (<code>chrono::DateTime&lt;Utc&gt;</code>).</p><pre><code class="language-rust">#[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
+#[sea_orm(table_name = &quot;satellite&quot;)]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    pub satellite_name: String,
+    pub launch_date: DateTimeUtc,
+    pub deployment_date: DateTimeLocal,
+}
+</code></pre><div class="row"><div class="col col--6 margin-bottom--md">Proposed by: <br/><br/><div class="avatar"><a class="avatar__photo-link avatar__photo avatar__photo--sm" href="https://github.com/lz1998"><img src="https://avatars.githubusercontent.com/u/9082086?v=4"/></a><div class="avatar__intro"><div class="avatar__name">lz1998</div></div></div><br/><div class="avatar"><a class="avatar__photo-link avatar__photo avatar__photo--sm" href="https://github.com/tyt2y3"><img src="https://avatars.githubusercontent.com/u/1782664?v=4"/></a><div class="avatar__intro"><div class="avatar__name">Chris Tsang</div></div></div></div><div class="col col--6 margin-bottom--md">Contributed by: <br/><br/><div class="avatar"><a class="avatar__photo-link avatar__photo avatar__photo--sm" href="https://github.com/charleschege"><img src="https://avatars.githubusercontent.com/u/33346042?v=4"/></a><div class="avatar__intro"><div class="avatar__name">Charles·Chege</div></div></div><br/><div class="avatar"><a class="avatar__photo-link avatar__photo avatar__photo--sm" href="https://github.com/billy1624"><img src="https://avatars.githubusercontent.com/u/30400950?v=4"/></a><div class="avatar__intro"><div class="avatar__name">Billy Chan</div></div></div></div></div><h2>Mock Join Results</h2><p>[<a href="https://github.com/SeaQL/sea-orm/pull/455">#455</a>] Constructs mock results of related model with tuple of model.</p><pre><code class="language-rust">let db = MockDatabase::new(DbBackend::Postgres)
+    // Mocking result of cake with its related fruit
+    .append_query_results(vec![vec![(
+        cake::Model {
+            id: 1,
+            name: &quot;Apple Cake&quot;.to_owned(),
+        },
+        fruit::Model {
+            id: 2,
+            name: &quot;Apple&quot;.to_owned(),
+            cake_id: Some(1),
+        },
+    )]])
+    .into_connection();
+
+assert_eq!(
+    cake::Entity::find()
+        .find_also_related(fruit::Entity)
+        .all(&amp;db)
+        .await?,
+    vec![(
+        cake::Model {
+            id: 1,
+            name: &quot;Apple Cake&quot;.to_owned(),
+        },
+        Some(fruit::Model {
+            id: 2,
+            name: &quot;Apple&quot;.to_owned(),
+            cake_id: Some(1),
+        })
+    )]
+);
+</code></pre><div class="row"><div class="col col--6 margin-bottom--md">Proposed by: <br/><br/><div class="avatar"><a class="avatar__photo-link avatar__photo avatar__photo--sm" href="https://github.com/cemoktra"><img src="https://avatars.githubusercontent.com/u/15634263?v=4"/></a><div class="avatar__intro"><div class="avatar__name">Bastian</div></div></div></div><div class="col col--6 margin-bottom--md">Contributed by: <br/><br/><div class="avatar"><a class="avatar__photo-link avatar__photo avatar__photo--sm" href="https://github.com/cemoktra"><img src="https://avatars.githubusercontent.com/u/15634263?v=4"/></a><div class="avatar__intro"><div class="avatar__name">Bastian</div></div></div><br/><div class="avatar"><a class="avatar__photo-link avatar__photo avatar__photo--sm" href="https://github.com/billy1624"><img src="https://avatars.githubusercontent.com/u/30400950?v=4"/></a><div class="avatar__intro"><div class="avatar__name">Billy Chan</div></div></div></div></div><h2>Support Max Connection Lifetime Option</h2><p>[<a href="https://github.com/SeaQL/sea-orm/pull/493">#493</a>] You can set the maximum lifetime of individual connection with the <code>max_lifetime</code> method.</p><pre><code class="language-rust">let mut opt = ConnectOptions::new(&quot;protocol://username:password@host/database&quot;.to_owned());
+opt.max_lifetime(Duration::from_secs(8))
+    .max_connections(100)
+    .min_connections(5)
+    .connect_timeout(Duration::from_secs(8))
+    .idle_timeout(Duration::from_secs(8))
+    .sqlx_logging(true);
+
+let db = Database::connect(opt).await?;
+</code></pre><div class="row"><div class="col col--6 margin-bottom--md">Proposed by: <br/><br/><div class="avatar"><a class="avatar__photo-link avatar__photo avatar__photo--sm" href="https://github.com/Sytten"><img src="https://avatars.githubusercontent.com/u/2366731?v=4"/></a><div class="avatar__intro"><div class="avatar__name">Émile Fugulin</div></div></div></div><div class="col col--6 margin-bottom--md">Contributed by: <br/><br/><div class="avatar"><a class="avatar__photo-link avatar__photo avatar__photo--sm" href="https://github.com/billy1624"><img src="https://avatars.githubusercontent.com/u/30400950?v=4"/></a><div class="avatar__intro"><div class="avatar__name">Billy Chan</div></div></div></div></div><h2>SeaORM CLI &amp; Codegen Updates</h2><ul><li>[<a href="https://github.com/SeaQL/sea-orm/pull/433">#433</a>] Generates the <code>column_name</code> macro attribute for column which is not named in snake case</li><li>[<a href="https://github.com/SeaQL/sea-orm/pull/335">#335</a>] Introduces migration subcommands <code>sea-orm-cli migrate</code></li></ul><div class="row"><div class="col col--6 margin-bottom--md">Proposed by: <br/><br/><div class="avatar"><a class="avatar__photo-link avatar__photo avatar__photo--sm" href="https://github.com/Gabriel-Paulucci"><img src="https://avatars.githubusercontent.com/u/43076727?v=4"/></a><div class="avatar__intro"><div class="avatar__name">Gabriel Paulucci</div></div></div></div><div class="col col--6 margin-bottom--md">Contributed by: <br/><br/><div class="avatar"><a class="avatar__photo-link avatar__photo avatar__photo--sm" href="https://github.com/billy1624"><img src="https://avatars.githubusercontent.com/u/30400950?v=4"/></a><div class="avatar__intro"><div class="avatar__name">Billy Chan</div></div></div></div></div><h2>Sponsor</h2><p>Our <a href="https://github.com/sponsors/SeaQL">GitHub Sponsor</a> profile is up! If you feel generous, a small donation will be greatly appreciated.</p><p>A big shout out to our sponsors 😇:</p><div class="row"><div class="col col--6 margin-bottom--md"><div class="avatar"><a class="avatar__photo-link avatar__photo avatar__photo--sm" href="https://github.com/Sytten"><img src="https://avatars.githubusercontent.com/u/2366731?v=4"/></a><div class="avatar__intro"><div class="avatar__name">Émile Fugulin</div></div></div></div><div class="col col--6 margin-bottom--md"><div class="avatar"><a class="avatar__photo-link avatar__photo avatar__photo--sm" href="https://github.com/exzachlyvv"><img src="https://avatars.githubusercontent.com/u/46034847?v=4"/></a><div class="avatar__intro"><div class="avatar__name">Zachary Vander Velden</div></div></div></div><div class="col col--6 margin-bottom--md"><div class="avatar"><a class="avatar__photo-link avatar__photo avatar__photo--sm" href="https://github.com/shanesveller"><img src="https://avatars.githubusercontent.com/u/831?v=4"/></a><div class="avatar__intro"><div class="avatar__name">Shane Sveller</div></div></div></div><div class="col col--6 margin-bottom--md"><div class="avatar"><a class="avatar__photo-link avatar__photo avatar__photo--sm" href="https://github.com/sakti"><img src="https://avatars.githubusercontent.com/u/196178?v=4"/></a><div class="avatar__intro"><div class="avatar__name">Sakti Dwi Cahyono</div></div></div></div><div class="col col--6 margin-bottom--md"><div class="avatar"><a class="avatar__photo-link avatar__photo avatar__photo--sm"><img style="width:100%" src="data:image/gif;base64,R0lGODlhAQABAIAAAMLCwgAAACH5BAAAAAAALAAAAAABAAEAAAICRAEAOw=="/></a><div class="avatar__intro"><div class="avatar__name">Unnamed Sponsor</div></div></div></div></div><h2>Community</h2><p>SeaQL is a community driven project. We welcome you to participate, contribute and together build for Rust&#x27;s future.</p><p>Here is the roadmap for SeaORM <a href="https://github.com/SeaQL/sea-orm/milestone/7"><code>0.7.x</code></a>.</p>]]></content>
+        <author>
+            <name>SeaQL Team</name>
+            <uri>https://github.com/SeaQL</uri>
+        </author>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[What's new in SeaORM 0.5.0]]></title>
+        <id>2022-01-01-whats-new-in-0.5.0</id>
+        <link href="https://www.sea-ql.org/SeaORM/blog/2022-01-01-whats-new-in-0.5.0"/>
+        <updated>2022-01-01T00:00:00.000Z</updated>
+        <summary type="html"><![CDATA[🎉 We are pleased to release SeaORM 0.5.0 today! Here are some feature highlights 🌟:]]></summary>
+        <content type="html"><![CDATA[<p>🎉 We are pleased to release SeaORM <a href="https://github.com/SeaQL/sea-orm/releases/tag/0.5.0"><code>0.5.0</code></a> today! Here are some feature highlights 🌟:</p><h2>Insert and Update Return <code>Model</code></h2><p>[<a href="https://github.com/SeaQL/sea-orm/pull/339">#339</a>] As asked and requested by many of our community members. You can now get the refreshed <code>Model</code> after insert or update operations. If you want to mutate the model and save it back to the database you can convert it into <code>ActiveModel</code> with the method <code>into_active_model</code>.</p><p>Breaking Changes:</p><ul><li><code>ActiveModel::insert</code> and <code>ActiveModel::update</code> return <code>Model</code> instead of <code>ActiveModel</code></li><li>Method <code>ActiveModelBehavior::after_save</code> takes <code>Model</code> as input instead of <code>ActiveModel</code></li></ul><pre><code class="language-rust">// Construct a `ActiveModel`
+let active_model = ActiveModel {
+    name: Set(&quot;Classic Vanilla Cake&quot;.to_owned()),
+    ..Default::default()
+};
+// Do insert
+let cake: Model = active_model.insert(db).await?;
+assert_eq!(
+    cake,
+    Model {
+        id: 1,
+        name: &quot;Classic Vanilla Cake&quot;.to_owned(),
+    }
+);
+
+// Covert `Model` into `ActiveModel`
+let mut active_model = cake.into_active_model();
+// Change the name of cake
+active_model.name = Set(&quot;Chocolate Cake&quot;.to_owned());
+// Do update
+let cake: Model = active_model.update(db).await?;
+assert_eq!(
+    cake,
+    Model {
+        id: 1,
+        name: &quot;Chocolate Cake&quot;.to_owned(),
+    }
+);
+
+// Do delete
+cake.delete(db).await?;
+</code></pre><div class="row"><div class="col col--6 margin-bottom--md">Proposed by: <br/><br/><div class="avatar"><a class="avatar__photo-link avatar__photo avatar__photo--sm" href="https://github.com/nicoulaj"><img src="https://avatars.githubusercontent.com/u/3162?v=4"/></a><div class="avatar__intro"><div class="avatar__name">Julien Nicoulaud</div></div></div><br/><div class="avatar"><a class="avatar__photo-link avatar__photo avatar__photo--sm" href="https://github.com/edg-l"><img src="https://avatars.githubusercontent.com/u/15859336?v=4"/></a><div class="avatar__intro"><div class="avatar__name">Edgar</div></div></div></div><div class="col col--6 margin-bottom--md">Contributed by: <br/><br/><div class="avatar"><a class="avatar__photo-link avatar__photo avatar__photo--sm" href="https://github.com/billy1624"><img src="https://avatars.githubusercontent.com/u/30400950?v=4"/></a><div class="avatar__intro"><div class="avatar__name">Billy Chan</div></div></div></div></div><h2><code>ActiveValue</code> Revamped</h2><p>[<a href="https://github.com/SeaQL/sea-orm/pull/340">#340</a>] The <code>ActiveValue</code> is now defined as an enum instead of a struct. The public API of it remains unchanged, except <code>Unset</code> was deprecated and <code>ActiveValue::NotSet</code> should be used instead.</p><p>Breaking Changes:</p><ul><li>Rename method <code>sea_orm::unchanged_active_value_not_intended_for_public_use</code> to <code>sea_orm::Unchanged</code></li><li>Rename method <code>ActiveValue::unset</code> to <code>ActiveValue::not_set</code></li><li>Rename method <code>ActiveValue::is_unset</code> to <code>ActiveValue::is_not_set</code></li><li><code>PartialEq</code> of <code>ActiveValue</code> will also check the equality of state instead of just checking the equality of value</li></ul><pre><code class="language-rust">/// Defines a stateful value used in ActiveModel.
+pub enum ActiveValue&lt;V&gt;
+where
+    V: Into&lt;Value&gt;,
+{
+    /// A defined [Value] actively being set
+    Set(V),
+    /// A defined [Value] remain unchanged
+    Unchanged(V),
+    /// An undefined [Value]
+    NotSet,
+}
+</code></pre><div class="row"><div class="col col--6 margin-bottom--md">Designed by: <br/><br/><div class="avatar"><a class="avatar__photo-link avatar__photo avatar__photo--sm" href="https://github.com/tyt2y3"><img src="https://avatars.githubusercontent.com/u/1782664?v=4"/></a><div class="avatar__intro"><div class="avatar__name">Chris Tsang</div></div></div></div><div class="col col--6 margin-bottom--md">Contributed by: <br/><br/><div class="avatar"><a class="avatar__photo-link avatar__photo avatar__photo--sm" href="https://github.com/billy1624"><img src="https://avatars.githubusercontent.com/u/30400950?v=4"/></a><div class="avatar__intro"><div class="avatar__name">Billy Chan</div></div></div></div></div><h2>SeaORM CLI &amp; Codegen Updates</h2><p>Install latest version of <code>sea-orm-cli</code>:</p><pre><code class="language-sh">cargo install sea-orm-cli
+</code></pre><p>Updates related to entity files generation (<code>cargo generate entity</code>):</p><ul><li>[<a href="https://github.com/SeaQL/sea-orm/pull/348">#348</a>] Discovers and defines PostgreSQL enums</li><li>[<a href="https://github.com/SeaQL/sea-orm/pull/386">#386</a>] Supports SQLite database, you can generate entity files from all supported databases including MySQL, PostgreSQL and SQLite</li></ul><div class="row"><div class="col col--6 margin-bottom--md">Proposed by: <br/><br/><div class="avatar"><a class="avatar__photo-link avatar__photo avatar__photo--sm" href="https://github.com/exzachlyvv"><img src="https://avatars.githubusercontent.com/u/46034847?v=4"/></a><div class="avatar__intro"><div class="avatar__name">Zachary Vander Velden</div></div></div></div><div class="col col--6 margin-bottom--md">Contributed by: <br/><br/><div class="avatar"><a class="avatar__photo-link avatar__photo avatar__photo--sm" href="https://github.com/charleschege"><img src="https://avatars.githubusercontent.com/u/33346042?v=4"/></a><div class="avatar__intro"><div class="avatar__name">Charles·Chege</div></div></div><br/><div class="avatar"><a class="avatar__photo-link avatar__photo avatar__photo--sm" href="https://github.com/billy1624"><img src="https://avatars.githubusercontent.com/u/30400950?v=4"/></a><div class="avatar__intro"><div class="avatar__name">Billy Chan</div></div></div></div></div><h2>Tracing</h2><p>[<a href="https://github.com/SeaQL/sea-orm/pull/373">#373</a>] You can trace the query executed by SeaORM with <code>debug-print</code> feature enabled and <a href="https://crates.io/crates/tracing-subscriber"><code>tracing-subscriber</code></a> up and running.</p><pre><code class="language-rust">pub async fn main() {
+    tracing_subscriber::fmt()
+        .with_max_level(tracing::Level::DEBUG)
+        .with_test_writer()
+        .init();
+
+    // ...
+}
+</code></pre><p>Contributed by:</p><div class="row"><div class="col col--6 margin-bottom--md"><div class="avatar"><a class="avatar__photo-link avatar__photo avatar__photo--sm" href="https://github.com/nappa85"><img src="https://avatars.githubusercontent.com/u/7566389?v=4"/></a><div class="avatar__intro"><div class="avatar__name">Marco Napetti</div></div></div></div></div><h2>Sponsor</h2><p>Our <a href="https://github.com/sponsors/SeaQL">GitHub Sponsor</a> profile is up! If you feel generous, a small donation will be greatly appreciated.</p><p>A big shout out to our sponsors 😇:</p><div class="row"><div class="col col--6 margin-bottom--md"><div class="avatar"><a class="avatar__photo-link avatar__photo avatar__photo--sm" href="https://github.com/sakti"><img src="https://avatars.githubusercontent.com/u/196178?v=4"/></a><div class="avatar__intro"><div class="avatar__name">Sakti Dwi Cahyono</div></div></div></div><div class="col col--6 margin-bottom--md"><div class="avatar"><a class="avatar__photo-link avatar__photo avatar__photo--sm" href="https://github.com/shanesveller"><img src="https://avatars.githubusercontent.com/u/831?v=4"/></a><div class="avatar__intro"><div class="avatar__name">Shane Sveller</div></div></div></div><div class="col col--6 margin-bottom--md"><div class="avatar"><a class="avatar__photo-link avatar__photo avatar__photo--sm" href="https://github.com/exzachlyvv"><img src="https://avatars.githubusercontent.com/u/46034847?v=4"/></a><div class="avatar__intro"><div class="avatar__name">Zachary Vander Velden</div></div></div></div><div class="col col--6 margin-bottom--md"><div class="avatar"><a class="avatar__photo-link avatar__photo avatar__photo--sm" href="https://github.com/praveenperera"><img src="https://avatars.githubusercontent.com/u/1775346?v=4"/></a><div class="avatar__intro"><div class="avatar__name">Praveen Perera</div></div></div></div><div class="col col--6 margin-bottom--md"><div class="avatar"><a class="avatar__photo-link avatar__photo avatar__photo--sm"><img style="width:100%" src="data:image/gif;base64,R0lGODlhAQABAIAAAMLCwgAAACH5BAAAAAAALAAAAAABAAEAAAICRAEAOw=="/></a><div class="avatar__intro"><div class="avatar__name">Unnamed Sponsor</div></div></div></div></div><h2>Community</h2><p>SeaQL is a community driven project. We welcome you to participate, contribute and together build for Rust&#x27;s future.</p><p>Here is the roadmap for SeaORM <a href="https://github.com/SeaQL/sea-orm/milestone/6"><code>0.6.x</code></a>.</p>]]></content>
+        <author>
+            <name>SeaQL Team</name>
+            <uri>https://github.com/SeaQL</uri>
+        </author>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[What's new in SeaORM 0.4.0]]></title>
+        <id>2021-11-19-whats-new-in-0.4.0</id>
+        <link href="https://www.sea-ql.org/SeaORM/blog/2021-11-19-whats-new-in-0.4.0"/>
+        <updated>2021-11-19T00:00:00.000Z</updated>
+        <summary type="html"><![CDATA[🎉 We are pleased to release SeaORM 0.4.0 today! Here are some feature highlights 🌟:]]></summary>
+        <content type="html"><![CDATA[<p>🎉 We are pleased to release SeaORM <a href="https://github.com/SeaQL/sea-orm/releases/tag/0.4.0"><code>0.4.0</code></a> today! Here are some feature highlights 🌟:</p><h2>Rust Edition 2021</h2><p>[<a href="https://github.com/SeaQL/sea-orm/pull/273">#273</a>] Upgrading SeaORM to <a href="https://blog.rust-lang.org/2021/10/21/Rust-1.56.0.html#rust-2021">Rust Edition 2021</a> 🦀❤🐚!</p><p>Contributed by:</p><div class="row"><div class="col col--6 margin-bottom--md"><div class="avatar"><a class="avatar__photo-link avatar__photo avatar__photo--sm" href="https://github.com/sno2"><img src="https://avatars.githubusercontent.com/u/43641633?v=4"/></a><div class="avatar__intro"><div class="avatar__name">Carter Snook</div></div></div></div></div><h2>Enumeration</h2><p>[<a href="https://github.com/SeaQL/sea-orm/issues/252">#252</a>] You can now use Rust enums in model where the values are mapped to a database string, integer or native enum. Learn more <a href="/SeaORM/docs/generate-entity/enumeration">here</a>.</p><pre><code class="language-rust">#[derive(Debug, Clone, PartialEq, DeriveEntityModel)]
+#[sea_orm(table_name = &quot;active_enum&quot;)]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    // Use our custom enum in a model
+    pub category: Option&lt;Category&gt;,
+    pub color: Option&lt;Color&gt;,
+    pub tea: Option&lt;Tea&gt;,
+}
+
+#[derive(Debug, Clone, PartialEq, EnumIter, DeriveActiveEnum)]
+#[sea_orm(rs_type = &quot;String&quot;, db_type = &quot;String(Some(1))&quot;)]
+// An enum serialized into database as a string value
+pub enum Category {
+    #[sea_orm(string_value = &quot;B&quot;)]
+    Big,
+    #[sea_orm(string_value = &quot;S&quot;)]
+    Small,
+}
+
+#[derive(Debug, Clone, PartialEq, EnumIter, DeriveActiveEnum)]
+#[sea_orm(rs_type = &quot;i32&quot;, db_type = &quot;Integer&quot;)]
+// An enum serialized into database as an integer value
+pub enum Color {
+    #[sea_orm(num_value = 0)]
+    Black,
+    #[sea_orm(num_value = 1)]
+    White,
+}
+
+#[derive(Debug, Clone, PartialEq, EnumIter, DeriveActiveEnum)]
+#[sea_orm(rs_type = &quot;String&quot;, db_type = &quot;Enum&quot;, enum_name = &quot;tea&quot;)]
+// An enum serialized into database as a database native enum
+pub enum Tea {
+    #[sea_orm(string_value = &quot;EverydayTea&quot;)]
+    EverydayTea,
+    #[sea_orm(string_value = &quot;BreakfastTea&quot;)]
+    BreakfastTea,
+}
+</code></pre><div class="row"><div class="col col--6 margin-bottom--md">Designed by: <br/><br/><div class="avatar"><a class="avatar__photo-link avatar__photo avatar__photo--sm" href="https://github.com/tyt2y3"><img src="https://avatars.githubusercontent.com/u/1782664?v=4"/></a><div class="avatar__intro"><div class="avatar__name">Chris Tsang</div></div></div></div><div class="col col--6 margin-bottom--md">Contributed by: <br/><br/><div class="avatar"><a class="avatar__photo-link avatar__photo avatar__photo--sm" href="https://github.com/billy1624"><img src="https://avatars.githubusercontent.com/u/30400950?v=4"/></a><div class="avatar__intro"><div class="avatar__name">Billy Chan</div></div></div></div></div><h2>Supports <code>RETURNING</code> Clause on PostgreSQL</h2><p>[<a href="https://github.com/SeaQL/sea-orm/issues/183">#183</a>] When performing insert or update operation on <code>ActiveModel</code> against PostgreSQL, <code>RETURNING</code> clause will be used to perform select in a single SQL statement.</p><pre><code class="language-rust">// For PostgreSQL
+cake::ActiveModel {
+    name: Set(&quot;Apple Pie&quot;.to_owned()),
+    ..Default::default()
+}
+.insert(&amp;postgres_db)
+.await?;
+
+assert_eq!(
+    postgres_db.into_transaction_log(),
+    vec![Transaction::from_sql_and_values(
+        DbBackend::Postgres,
+        r#&quot;INSERT INTO &quot;cake&quot; (&quot;name&quot;) VALUES ($1) RETURNING &quot;id&quot;, &quot;name&quot;&quot;#,
+        vec![&quot;Apple Pie&quot;.into()]
+    )]);
+</code></pre><pre><code class="language-rust">// For MySQL &amp; SQLite
+cake::ActiveModel {
+    name: Set(&quot;Apple Pie&quot;.to_owned()),
+    ..Default::default()
+}
+.insert(&amp;other_db)
+.await?;
+
+assert_eq!(
+    other_db.into_transaction_log(),
+    vec![
+        Transaction::from_sql_and_values(
+            DbBackend::MySql,
+            r#&quot;INSERT INTO `cake` (`name`) VALUES (?)&quot;#,
+            vec![&quot;Apple Pie&quot;.into()]
+        ),
+        Transaction::from_sql_and_values(
+            DbBackend::MySql,
+            r#&quot;SELECT `cake`.`id`, `cake`.`name` FROM `cake` WHERE `cake`.`id` = ? LIMIT ?&quot;#,
+            vec![15.into(), 1u64.into()]
+        )]);
+</code></pre><div class="row"><div class="col col--6 margin-bottom--md">Proposed by: <br/><br/><div class="avatar"><a class="avatar__photo-link avatar__photo avatar__photo--sm" href="https://github.com/marlon-sousa"><img src="https://avatars.githubusercontent.com/u/21093041?v=4"/></a><div class="avatar__intro"><div class="avatar__name">Marlon Brandão de Sousa</div></div></div></div><div class="col col--6 margin-bottom--md">Contributed by: <br/><br/><div class="avatar"><a class="avatar__photo-link avatar__photo avatar__photo--sm" href="https://github.com/billy1624"><img src="https://avatars.githubusercontent.com/u/30400950?v=4"/></a><div class="avatar__intro"><div class="avatar__name">Billy Chan</div></div></div></div></div><h2>Axum Integration Example</h2><p>[<a href="https://github.com/SeaQL/sea-orm/pull/297">#297</a>] Added <a href="https://github.com/SeaQL/sea-orm/tree/master/examples/axum_example">Axum integration example</a>. More examples <a href="https://github.com/SeaQL/sea-orm/issues/269">wanted</a>!</p><p>Contributed by:</p><div class="row"><div class="col col--6 margin-bottom--md"><div class="avatar"><a class="avatar__photo-link avatar__photo avatar__photo--sm" href="https://github.com/YoshieraHuang"><img src="https://avatars.githubusercontent.com/u/38752027?v=4"/></a><div class="avatar__intro"><div class="avatar__name">Yoshiera</div></div></div></div></div><h2>Sponsor</h2><p>Our <a href="https://github.com/sponsors/SeaQL">GitHub Sponsor</a> profile is up! If you feel generous, a small donation will be greatly appreciated.</p><p>A big shout out to our first sponsors 😇:</p><div class="row"><div class="col col--6 margin-bottom--md"><div class="avatar"><a class="avatar__photo-link avatar__photo avatar__photo--sm" href="https://github.com/shanesveller"><img src="https://avatars.githubusercontent.com/u/831?v=4"/></a><div class="avatar__intro"><div class="avatar__name">Shane Sveller</div></div></div></div><div class="col col--6 margin-bottom--md"><div class="avatar"><a class="avatar__photo-link avatar__photo avatar__photo--sm" href="https://github.com/exzachlyvv"><img src="https://avatars.githubusercontent.com/u/46034847?v=4"/></a><div class="avatar__intro"><div class="avatar__name">Zachary Vander Velden</div></div></div></div><div class="col col--6 margin-bottom--md"><div class="avatar"><a class="avatar__photo-link avatar__photo avatar__photo--sm"><img style="width:100%" src="data:image/gif;base64,R0lGODlhAQABAIAAAMLCwgAAACH5BAAAAAAALAAAAAABAAEAAAICRAEAOw=="/></a><div class="avatar__intro"><div class="avatar__name">Unnamed Sponsor</div></div></div></div></div><h2>Community</h2><p>SeaQL is a community driven project. We welcome you to participate, contribute and together build for Rust&#x27;s future.</p><p>Here is the roadmap for SeaORM <a href="https://github.com/SeaQL/sea-orm/milestone/5"><code>0.5.x</code></a>.</p>]]></content>
+        <author>
+            <name>SeaQL Team</name>
+            <uri>https://github.com/SeaQL</uri>
+        </author>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[What's new in SeaORM 0.3.0]]></title>
+        <id>2021-10-15-whats-new-in-0.3.0</id>
+        <link href="https://www.sea-ql.org/SeaORM/blog/2021-10-15-whats-new-in-0.3.0"/>
+        <updated>2021-10-15T00:00:00.000Z</updated>
+        <summary type="html"><![CDATA[🎉 We are pleased to release SeaORM 0.3.0 today! Here are some feature highlights 🌟:]]></summary>
+        <content type="html"><![CDATA[<p>🎉 We are pleased to release SeaORM <a href="https://github.com/SeaQL/sea-orm/releases/tag/0.3.0"><code>0.3.0</code></a> today! Here are some feature highlights 🌟:</p><h2>Transaction</h2><p>[<a href="https://github.com/SeaQL/sea-orm/pull/222">#222</a>] Use database transaction to perform atomic operations</p><p>Two transaction APIs are provided:</p><ul><li><p><code>closure</code> style. Will be committed on Ok and rollback on Err.</p><pre><code class="language-rust">// &lt;Fn, A, B&gt; -&gt; Result&lt;A, B&gt;
+db.transaction::&lt;_, _, DbErr&gt;(|txn| {
+    Box::pin(async move {
+        bakery::ActiveModel {
+            name: Set(&quot;SeaSide Bakery&quot;.to_owned()),
+            ..Default::default()
+        }
+        .save(txn)
+        .await?;
+
+        bakery::ActiveModel {
+            name: Set(&quot;Top Bakery&quot;.to_owned()),
+            ..Default::default()
+        }
+        .save(txn)
+        .await?;
+
+        Ok(())
+    })
+})
+.await;
+</code></pre></li><li><p>RAII style. <code>begin</code> the transaction followed by <code>commit</code> or <code>rollback</code>. If <code>txn</code> goes out of scope, it&#x27;d automatically rollback.</p><pre><code class="language-rust">let txn = db.begin().await?;
+
+// do something with txn
+
+txn.commit().await?;
+</code></pre></li></ul><p>Contributed by:</p><div class="row"><div class="col col--3 margin-bottom--md"><div class="avatar"><a class="avatar__photo-link avatar__photo avatar__photo--sm" href="https://github.com/nappa85"><img src="https://avatars.githubusercontent.com/u/7566389?v=4"/></a><div class="avatar__intro"><div class="avatar__name">Marco Napetti</div></div></div></div><div class="col col--3 margin-bottom--md"><div class="avatar"><a class="avatar__photo-link avatar__photo avatar__photo--sm" href="https://github.com/tyt2y3"><img src="https://avatars.githubusercontent.com/u/1782664?v=4"/></a><div class="avatar__intro"><div class="avatar__name">Chris Tsang</div></div></div></div></div><h2>Streaming</h2><p>[<a href="https://github.com/SeaQL/sea-orm/pull/222">#222</a>] Use async stream on any <code>Select</code> for memory efficiency.</p><pre><code class="language-rust">let mut stream = Fruit::find().stream(&amp;db).await?;
+
+while let Some(item) = stream.try_next().await? {
+    let item: fruit::ActiveModel = item.into();
+    // do something with item
+}
+</code></pre><p>Contributed by:</p><div class="row"><div class="col col--3 margin-bottom--md"><div class="avatar"><a class="avatar__photo-link avatar__photo avatar__photo--sm" href="https://github.com/nappa85"><img src="https://avatars.githubusercontent.com/u/7566389?v=4"/></a><div class="avatar__intro"><div class="avatar__name">Marco Napetti</div></div></div></div></div><h2>API for custom logic on save &amp; delete</h2><p>[<a href="https://github.com/SeaQL/sea-orm/pull/210">#210</a>] We redefined the trait methods of <code>ActiveModelBehavior</code>. You can now perform custom validation before and after <code>insert</code>, <code>update</code>, <code>save</code>, <code>delete</code> actions. You can abort an action even after it is done, if you are inside a transaction.</p><pre><code class="language-rust">impl ActiveModelBehavior for ActiveModel {
+    // Override default values
+    fn new() -&gt; Self {
+        Self {
+            serial: Set(Uuid::new_v4()),
+            ..ActiveModelTrait::default()
+        }
+    }
+
+    // Triggered before insert / update
+    fn before_save(self, insert: bool) -&gt; Result&lt;Self, DbErr&gt; {
+        if self.price.as_ref() &lt;= &amp;0.0 {
+            Err(DbErr::Custom(format!(
+                &quot;[before_save] Invalid Price, insert: {}&quot;,
+                insert
+            )))
+        } else {
+            Ok(self)
+        }
+    }
+
+    // Triggered after insert / update
+    fn after_save(self, insert: bool) -&gt; Result&lt;Self, DbErr&gt; {
+        Ok(self)
+    }
+
+    // Triggered before delete
+    fn before_delete(self) -&gt; Result&lt;Self, DbErr&gt; {
+        Ok(self)
+    }
+
+    // Triggered after delete
+    fn after_delete(self) -&gt; Result&lt;Self, DbErr&gt; {
+        Ok(self)
+    }
+}
+</code></pre><p>Contributed by:</p><div class="row"><div class="col col--3 margin-bottom--md"><div class="avatar"><a class="avatar__photo-link avatar__photo avatar__photo--sm" href="https://github.com/MuhannadAlrusayni"><img src="https://avatars.githubusercontent.com/u/14802524?v=4"/></a><div class="avatar__intro"><div class="avatar__name">Muhannad</div></div></div></div><div class="col col--3 margin-bottom--md"><div class="avatar"><a class="avatar__photo-link avatar__photo avatar__photo--sm" href="https://github.com/billy1624"><img src="https://avatars.githubusercontent.com/u/30400950?v=4"/></a><div class="avatar__intro"><div class="avatar__name">Billy Chan</div></div></div></div></div><h2>Generate Entity Models That Derive Serialize / Deserialize</h2><p>[<a href="https://github.com/SeaQL/sea-orm/pull/237">#237</a>] You can use <code>sea-orm-cli</code> to generate entity models that also derive serde <code>Serialize</code> / <code>Deserialize</code> traits.</p><pre><code class="language-rust">//! SeaORM Entity. Generated by sea-orm-codegen 0.3.0
+
+use sea_orm::entity::prelude:: * ;
+use serde::{Deserialize, Serialize};
+
+#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
+#[sea_orm(table_name = &quot;cake&quot;)]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    #[sea_orm(column_type = &quot;Text&quot;, nullable)]
+    pub name: Option&lt;String&gt; ,
+}
+
+// ...
+</code></pre><p>Contributed by:</p><div class="row"><div class="col col--3 margin-bottom--md"><div class="avatar"><a class="avatar__photo-link avatar__photo avatar__photo--sm" href="https://github.com/elbart"><img src="https://avatars.githubusercontent.com/u/48974?v=4"/></a><div class="avatar__intro"><div class="avatar__name">Tim Eggert</div></div></div></div></div><h2>Introduce <code>DeriveIntoActiveModel</code> macro &amp; <code>IntoActiveValue</code> Trait</h2><p>[<a href="https://github.com/SeaQL/sea-orm/pull/240">#240</a>] introduced a new derive macro <code>DeriveIntoActiveModel</code> for implementing <code>IntoActiveModel</code> on structs. This is useful when creating your own struct with only partial fields of a model, for example as a form submission in a REST API.</p><p><code>IntoActiveValue</code> trait allows converting <code>Option&lt;T&gt;</code> into <code>ActiveValue&lt;T&gt;</code> with the method <code>into_active_value</code>.</p><pre><code class="language-rust">// Define regular model as usual
+#[derive(Clone, Debug, PartialEq, DeriveModel, DeriveActiveModel)]
+#[sea_orm(table_name = &quot;users&quot;)]
+pub struct Model {
+    pub id: Uuid,
+    pub created_at: DateTimeWithTimeZone,
+    pub updated_at: DateTimeWithTimeZone,
+    pub email: String,
+    pub password: String,
+    pub full_name: Option&lt;String&gt;,
+    pub phone: Option&lt;String&gt;,
+}
+
+// Create a new struct with some fields omitted
+#[derive(DeriveIntoActiveModel)]
+pub struct NewUser {
+    // id, created_at and updated_at are omitted from this struct,
+    // and will always be `ActiveValue::unset`
+    pub email: String,
+    pub password: String,
+    // Full name is usually optional, but it can be required here
+    pub full_name: String,
+    // Option implements `IntoActiveValue`, and when `None` will be `unset`
+    pub phone: Option&lt;String&gt;,
+}
+
+#[derive(DeriveIntoActiveModel)]
+pub struct UpdateUser {
+    // Option&lt;Option&lt;T&gt;&gt; allows for Some(None) to update the column to be NULL
+    pub phone: Option&lt;Option&lt;String&gt;&gt;,
+}
+</code></pre><p>Contributed by:</p><div class="row"><div class="col col--3 margin-bottom--md"><div class="avatar"><a class="avatar__photo-link avatar__photo avatar__photo--sm" href="https://github.com/Acidic9"><img src="https://avatars.githubusercontent.com/u/16362377?v=4"/></a><div class="avatar__intro"><div class="avatar__name">Ari Seyhun</div></div></div></div></div><h2>Community</h2><p>SeaQL is a community driven project. We welcome you to participate, contribute and together build for Rust&#x27;s future.</p><p>Here is the roadmap for SeaORM <a href="https://github.com/SeaQL/sea-orm/milestone/4"><code>0.4.x</code></a>.</p>]]></content>
+        <author>
+            <name>SeaQL Team</name>
+            <uri>https://github.com/SeaQL</uri>
+        </author>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[What's new in SeaORM 0.2.4]]></title>
+        <id>2021-10-01-whats-new-in-0.2.4</id>
+        <link href="https://www.sea-ql.org/SeaORM/blog/2021-10-01-whats-new-in-0.2.4"/>
+        <updated>2021-10-01T00:00:00.000Z</updated>
+        <summary type="html"><![CDATA[🎉 We are pleased to release SeaORM 0.2.4 today! Some feature highlights:]]></summary>
+        <content type="html"><![CDATA[<p>🎉 We are pleased to release SeaORM <a href="https://github.com/SeaQL/sea-orm/releases/tag/0.2.4"><code>0.2.4</code></a> today! Some feature highlights:</p><h2>Better ergonomic when working with custom select list</h2><p>[<a href="https://github.com/SeaQL/sea-orm/pull/208">#208</a>] Use <a href="https://docs.rs/sea-orm/0.2.4/sea_orm/entity/prelude/struct.Select.html#method.into_values">Select::into_values</a> to quickly select a custom column list and destruct as tuple.</p><pre><code class="language-rust">use sea_orm::{entity::*, query::*, tests_cfg::cake, DeriveColumn, EnumIter};
+
+#[derive(Copy, Clone, Debug, EnumIter, DeriveColumn)]
+enum QueryAs {
+    CakeName,
+    NumOfCakes,
+}
+
+let res: Vec&lt;(String, i64)&gt; = cake::Entity::find()
+    .select_only()
+    .column_as(cake::Column::Name, QueryAs::CakeName)
+    .column_as(cake::Column::Id.count(), QueryAs::NumOfCakes)
+    .group_by(cake::Column::Name)
+    .into_values::&lt;_, QueryAs&gt;()
+    .all(&amp;db)
+    .await?;
+
+assert_eq!(
+    res,
+    vec![(&quot;Chocolate Forest&quot;.to_owned(), 2i64)]
+);
+</code></pre><p>Contributed by:</p><div class="col col--3 margin-bottom--md"><div class="avatar"><a class="avatar__photo-link avatar__photo avatar__photo--sm" href="https://github.com/MuhannadAlrusayni"><img src="https://avatars.githubusercontent.com/u/14802524?v=4"/></a><div class="avatar__intro"><div class="avatar__name">Muhannad</div></div></div></div><h2>Rename column name &amp; column enum variant</h2><p>[<a href="https://github.com/SeaQL/sea-orm/pull/209">#209</a>] Rename the column name and enum variant of a model attribute, especially helpful when the column name is a Rust keyword.</p><pre><code class="language-rust">mod my_entity {
+    use sea_orm::entity::prelude::*;
+
+    #[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
+    #[sea_orm(table_name = &quot;my_entity&quot;)]
+    pub struct Model {
+        #[sea_orm(primary_key, enum_name = &quot;IdentityColumn&quot;, column_name = &quot;id&quot;)]
+        pub id: i32,
+        #[sea_orm(column_name = &quot;type&quot;)]
+        pub type_: String,
+    }
+
+    //...
+}
+
+assert_eq!(my_entity::Column::IdentityColumn.to_string().as_str(), &quot;id&quot;);
+assert_eq!(my_entity::Column::Type.to_string().as_str(), &quot;type&quot;);
+</code></pre><p>Contributed by:</p><div class="container"><div class="row"><div class="col col--3 margin-bottom--md"><div class="avatar"><a class="avatar__photo-link avatar__photo avatar__photo--sm" href="https://github.com/billy1624"><img src="https://avatars.githubusercontent.com/u/30400950?v=4"/></a><div class="avatar__intro"><div class="avatar__name">Billy Chan</div></div></div></div></div></div><h2><code>not</code> on a condition tree</h2><p>[<a href="https://github.com/SeaQL/sea-query/pull/145">#145</a>] Build a complex condition tree with <a href="https://docs.rs/sea-query/0.16.5/sea_query/query/struct.Condition.html">Condition</a>.</p><pre><code class="language-rust">use sea_orm::{entity::*, query::*, tests_cfg::cake, sea_query::Expr, DbBackend};
+
+assert_eq!(
+    cake::Entity::find()
+        .filter(
+            Condition::all()
+                .add(
+                    Condition::all()
+                        .not()
+                        .add(Expr::val(1).eq(1))
+                        .add(Expr::val(2).eq(2))
+                )
+                .add(
+                    Condition::any()
+                        .add(Expr::val(3).eq(3))
+                        .add(Expr::val(4).eq(4))
+                )
+        )
+        .build(DbBackend::Postgres)
+        .to_string(),
+    r#&quot;SELECT &quot;cake&quot;.&quot;id&quot;, &quot;cake&quot;.&quot;name&quot; FROM &quot;cake&quot; WHERE (NOT (1 = 1 AND 2 = 2)) AND (3 = 3 OR 4 = 4)&quot;#
+);
+</code></pre><p>Contributed by:</p><div class="container"><div class="row"><div class="col col--3 margin-bottom--md"><div class="avatar"><a class="avatar__photo-link avatar__photo avatar__photo--sm" href="https://github.com/nitnelave"><img src="https://avatars.githubusercontent.com/u/796633?v=4"/></a><div class="avatar__intro"><div class="avatar__name">nitnelave</div></div></div></div><div class="col col--3 margin-bottom--md"><div class="avatar"><a class="avatar__photo-link avatar__photo avatar__photo--sm" href="https://github.com/6xzo"><img src="https://avatars.githubusercontent.com/u/36180574?v=4"/></a><div class="avatar__intro"><div class="avatar__name">6xzo</div></div></div></div></div></div><h2>Community</h2><p>SeaQL is a community driven project. We welcome you to participate, contribute and together build for Rust&#x27;s future.</p><p>Here is the roadmap for SeaORM <a href="https://github.com/SeaQL/sea-orm/milestone/3"><code>0.3.x</code></a>.</p>]]></content>
+        <author>
+            <name>SeaQL Team</name>
+            <uri>https://github.com/SeaQL</uri>
+        </author>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[Introducing SeaORM]]></title>
+        <id>2021-09-20-introducing-sea-orm</id>
+        <link href="https://www.sea-ql.org/SeaORM/blog/2021-09-20-introducing-sea-orm"/>
+        <updated>2021-09-20T00:00:00.000Z</updated>
+        <summary type="html"><![CDATA[We are pleased to introduce SeaORM 0.2.2 to the Rust community today. It's our pleasure to have received feedback and contributions from awesome people to SeaQuery and SeaORM since 0.1.0.]]></summary>
+        <content type="html"><![CDATA[<p>We are pleased to introduce SeaORM <a href="https://github.com/SeaQL/sea-orm/releases/tag/0.2.2"><code>0.2.2</code></a> to the Rust community today. It&#x27;s our pleasure to have received feedback and contributions from awesome people to SeaQuery and SeaORM since <code>0.1.0</code>.</p><p>Rust is a wonderful language that can be used to build anything. One of the FAQs is &quot;Are We Web Yet?&quot;, and if Rocket (or your favourite web framework) is Rust&#x27;s Rail, then SeaORM is precisely Rust&#x27;s ActiveRecord.</p><p>SeaORM is an async ORM built from the ground up, designed to play well with the async ecosystem, whether it&#x27;s actix, async-std, tokio or any web framework built on top.</p><p>Let&#x27;s have a quick tour of SeaORM.</p><h2>Async</h2><p>Here is how you&#x27;d execute multiple queries in parallel:</p><pre><code class="language-rust">// execute multiple queries in parallel
+let cakes_and_fruits: (Vec&lt;cake::Model&gt;, Vec&lt;fruit::Model&gt;) =
+    futures::try_join!(Cake::find().all(&amp;db), Fruit::find().all(&amp;db))?;
+</code></pre><h2>Dynamic</h2><p>You can use SeaQuery to build complex queries without &#x27;fighting the ORM&#x27;:</p><pre><code class="language-rust">// build subquery with ease
+let cakes_with_filling: Vec&lt;cake::Model&gt; = cake::Entity::find()
+    .filter(
+        Condition::any().add(
+            cake::Column::Id.in_subquery(
+                Query::select()
+                    .column(cake_filling::Column::CakeId)
+                    .from(cake_filling::Entity)
+                    .to_owned(),
+            ),
+        ),
+    )
+    .all(&amp;db)
+    .await?;
+</code></pre><p><a href="https://docs.rs/sea-query/*/sea_query/">More on SeaQuery</a></p><h2>Testable</h2><p>To write unit tests, you can use our mock interface:</p><pre><code class="language-rust">// Setup mock connection
+let db = MockDatabase::new(DbBackend::Postgres)
+    .append_query_results(vec![
+        vec![
+            cake::Model {
+                id: 1,
+                name: &quot;New York Cheese&quot;.to_owned(),
+            },
+        ],
+    ])
+    .into_connection();
+
+// Perform your application logic
+assert_eq!(
+    cake::Entity::find().one(&amp;db).await?,
+    Some(cake::Model {
+        id: 1,
+        name: &quot;New York Cheese&quot;.to_owned(),
+    })
+);
+
+// Compare it against the expected transaction log
+assert_eq!(
+    db.into_transaction_log(),
+    vec![
+        Transaction::from_sql_and_values(
+            DbBackend::Postgres,
+            r#&quot;SELECT &quot;cake&quot;.&quot;id&quot;, &quot;cake&quot;.&quot;name&quot; FROM &quot;cake&quot; LIMIT $1&quot;#,
+            vec![1u64.into()]
+        ),
+    ]
+);
+</code></pre><p><a href="/docs/write-test/mock">More on testing</a></p><h2>Service Oriented</h2><p>Here is an example <code>Rocket</code> handler with pagination:</p><pre><code class="language-rust">#[get(&quot;/?&lt;page&gt;&amp;&lt;posts_per_page&gt;&quot;)]
+async fn list(
+    conn: Connection&lt;Db&gt;,
+    page: Option&lt;usize&gt;,
+    per_page: Option&lt;usize&gt;,
+) -&gt; Template {
+    // Set page number and items per page
+    let page = page.unwrap_or(1);
+    let per_page = per_page.unwrap_or(10);
+
+    // Setup paginator
+    let paginator = Post::find()
+        .order_by_asc(post::Column::Id)
+        .paginate(&amp;conn, per_page);
+    let num_pages = paginator.num_pages().await.unwrap();
+
+    // Fetch paginated posts
+    let posts = paginator
+        .fetch_page(page - 1)
+        .await
+        .expect(&quot;could not retrieve posts&quot;);
+
+    Template::render(
+        &quot;index&quot;,
+        context! {
+            page: page,
+            per_page: per_page,
+            posts: posts,
+            num_pages: num_pages,
+        },
+    )
+}
+</code></pre><p><a href="https://github.com/SeaQL/sea-orm/tree/master/examples/rocket_example">Full Rocket example</a></p><p>We are building more examples for other web frameworks too.</p><h2>People</h2><p>SeaQL is a community driven project. We welcome you to participate, contribute and together build for Rust&#x27;s future.</p><h3>Core Members</h3><div class="container"><div class="row"><div class="col col--3 margin-bottom--md"><div class="avatar"><a class="avatar__photo-link avatar__photo avatar__photo--sm" href="https://github.com/tyt2y3"><img src="https://avatars.githubusercontent.com/u/1782664?v=4"/></a><div class="avatar__intro"><div class="avatar__name">Chris Tsang</div></div></div></div><div class="col col--3 margin-bottom--md"><div class="avatar"><a class="avatar__photo-link avatar__photo avatar__photo--sm" href="https://github.com/billy1624"><img src="https://avatars.githubusercontent.com/u/30400950?v=4"/></a><div class="avatar__intro"><div class="avatar__name">Billy Chan</div></div></div></div></div></div><h3>Contributors</h3><p>As a courtesy, here is the list of SeaQL&#x27;s early contributors (in alphabetic order):</p><div class="container"><div class="row"><div class="col col--3 margin-bottom--md"><div class="avatar"><a class="avatar__photo-link avatar__photo avatar__photo--sm" href="https://github.com/Acidic9"><img src="https://avatars.githubusercontent.com/u/16362377?v=4"/></a><div class="avatar__intro"><div class="avatar__name">Ari Seyhun</div></div></div></div><div class="col col--3 margin-bottom--md"><div class="avatar"><a class="avatar__photo-link avatar__photo avatar__photo--sm" href="https://github.com/MozarellaMan"><img src="https://avatars.githubusercontent.com/u/48062697?v=4"/></a><div class="avatar__intro"><div class="avatar__name">Ayomide Bamidele</div></div></div></div><div class="col col--3 margin-bottom--md"><div class="avatar"><a class="avatar__photo-link avatar__photo avatar__photo--sm" href="https://github.com/benarmstead"><img src="https://avatars.githubusercontent.com/u/70973680?v=4"/></a><div class="avatar__intro"><div class="avatar__name">Ben Armstead</div></div></div></div><div class="col col--3 margin-bottom--md"><div class="avatar"><a class="avatar__photo-link avatar__photo avatar__photo--sm" href="https://github.com/bobbyng626"><img src="https://avatars.githubusercontent.com/u/67236456?v=4"/></a><div class="avatar__intro"><div class="avatar__name">Bobby Ng</div></div></div></div><div class="col col--3 margin-bottom--md"><div class="avatar"><a class="avatar__photo-link avatar__photo avatar__photo--sm" href="https://github.com/scrblue"><img src="https://avatars.githubusercontent.com/u/1524936?v=4"/></a><div class="avatar__intro"><div class="avatar__name">Daniel Lyne</div></div></div></div><div class="col col--3 margin-bottom--md"><div class="avatar"><a class="avatar__photo-link avatar__photo avatar__photo--sm" href="https://github.com/Hirtol"><img src="https://avatars.githubusercontent.com/u/55356909?v=4"/></a><div class="avatar__intro"><div class="avatar__name">Hirtol</div></div></div></div><div class="col col--3 margin-bottom--md"><div class="avatar"><a class="avatar__photo-link avatar__photo avatar__photo--sm" href="https://github.com/Follpvosten"><img src="https://avatars.githubusercontent.com/u/22855787?v=4"/></a><div class="avatar__intro"><div class="avatar__name">Jonas Rinner</div></div></div></div><div class="col col--3 margin-bottom--md"><div class="avatar"><a class="avatar__photo-link avatar__photo avatar__photo--sm" href="https://github.com/nappa85"><img src="https://avatars.githubusercontent.com/u/7566389?v=4"/></a><div class="avatar__intro"><div class="avatar__name">Marco Napetti</div></div></div></div><div class="col col--3 margin-bottom--md"><div class="avatar"><a class="avatar__photo-link avatar__photo avatar__photo--sm" href="https://github.com/code-mm"><img src="https://avatars.githubusercontent.com/u/43041831?v=4"/></a><div class="avatar__intro"><div class="avatar__name">Markus Merklinger</div></div></div></div><div class="col col--3 margin-bottom--md"><div class="avatar"><a class="avatar__photo-link avatar__photo avatar__photo--sm" href="https://github.com/MuhannadAlrusayni"><img src="https://avatars.githubusercontent.com/u/14802524?v=4"/></a><div class="avatar__intro"><div class="avatar__name">Muhannad</div></div></div></div><div class="col col--3 margin-bottom--md"><div class="avatar"><a class="avatar__photo-link avatar__photo avatar__photo--sm" href="https://github.com/nitnelave"><img src="https://avatars.githubusercontent.com/u/796633?v=4"/></a><div class="avatar__intro"><div class="avatar__name">nitnelave</div></div></div></div><div class="col col--3 margin-bottom--md"><div class="avatar"><a class="avatar__photo-link avatar__photo avatar__photo--sm" href="https://github.com/duchainer"><img src="https://avatars.githubusercontent.com/u/11084784?v=4"/></a><div class="avatar__intro"><div class="avatar__name">Raphaël Duchaîne</div></div></div></div><div class="col col--3 margin-bottom--md"><div class="avatar"><a class="avatar__photo-link avatar__photo avatar__photo--sm" href="https://github.com/RemiKalbe"><img src="https://avatars.githubusercontent.com/u/8604600?v=4"/></a><div class="avatar__intro"><div class="avatar__name">Rémi Kalbe</div></div></div></div><div class="col col--3 margin-bottom--md"><div class="avatar"><a class="avatar__photo-link avatar__photo avatar__photo--sm" href="https://github.com/samsamai"><img src="https://avatars.githubusercontent.com/u/3764355?v=4"/></a><div class="avatar__intro"><div class="avatar__name">Sam Samai</div></div></div></div></div></div>]]></content>
+        <author>
+            <name>Chris Tsang</name>
+            <uri>https://github.com/tyt2y3</uri>
+        </author>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[Release Model]]></title>
+        <id>2021-08-30-release-model</id>
+        <link href="https://www.sea-ql.org/SeaORM/blog/2021-08-30-release-model"/>
+        <updated>2021-08-30T00:00:00.000Z</updated>
+        <summary type="html"><![CDATA[Today we will outline our release plan in the near future.]]></summary>
+        <content type="html"><![CDATA[<p>Today we will outline our release plan in the near future.</p><p>One of Rust&#x27;s slogan is <a href="https://doc.rust-lang.org/book/appendix-07-nightly-rust.html#stability-without-stagnation">Stability Without Stagnation</a>, and SeaQL&#x27;s take on it, is &#x27;progression without stagnation&#x27;.</p><p>Before reaching <code>1.0</code>, we will be releasing every week, incorporating the latest changes and merged pull requests. There will be at most one incompatible release per month, so you will be expecting <code>0.2</code> in Sep 2021 and <code>0.9</code> in Apr 2022. We will decide by then whether the next release is an incremental <code>0.10</code> or a stable <code>1.0</code>.</p><p>After that, a major release will be rolled out every year. So you will probably be expecting a <code>2.0</code> in 2023.</p><p>All of these is only made possible with a solid infrastructure. While we have a <a href="https://github.com/SeaQL/sea-orm/actions">test suite</a>, its coverage will likely never be enough. We urge you to submit test cases to SeaORM if a particular feature is of importance to you.</p><p>We hope that a rolling release model will provide momentum to the community and propell us forward in the near future.</p>]]></content>
+        <author>
+            <name>Chris Tsang</name>
+            <uri>https://github.com/tyt2y3</uri>
+        </author>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[Hello World]]></title>
+        <id>2021-08-07-hello-world</id>
+        <link href="https://www.sea-ql.org/SeaORM/blog/2021-08-07-hello-world"/>
+        <updated>2021-08-07T00:00:00.000Z</updated>
+        <summary type="html"><![CDATA[After 8 months of secrecy, SeaORM is now public!]]></summary>
+        <content type="html"><![CDATA[<p>After <a href="https://github.com/SeaQL/sea-query/discussions/9">8 months of secrecy</a>, SeaORM is now public!</p><p>The Rust async ecosystem is definitely thriving, with Tokio <a href="https://tokio.rs/blog/2021-07-announcing-axum">announcing Axum</a> a week before.</p><p>We are now busy doing the brush ups to head towards our announcement in Sep.</p><p>If you stumbled upon us just now, well, hello! We sincerely invite you to be our alpha tester.</p>]]></content>
+        <author>
+            <name>Chris Tsang</name>
+            <uri>https://github.com/tyt2y3</uri>
+        </author>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[Welcome to SeaORM]]></title>
+        <id>2021-07-01-welcome</id>
+        <link href="https://www.sea-ql.org/SeaORM/blog/2021-07-01-welcome"/>
+        <updated>2021-07-01T00:00:00.000Z</updated>
+        <summary type="html"><![CDATA[One year ago, when we were writing data processing algorithms in Rust, we needed an async library to interface with a database. Back then, there weren't many choices. So we have to write our own.]]></summary>
+        <content type="html"><![CDATA[<p>One year ago, when we were writing data processing algorithms in Rust, we needed an async library to interface with a database. Back then, there weren&#x27;t many choices. So we have to write our own.</p><p>December last year, we released <a href="https://github.com/SeaQL/sea-query">SeaQuery</a>, and received welcoming responses from the community. We decided to push the project further and develop a full blown async ORM.</p><p>It has been a bumpy ride, as designing an async ORM requires working within and sometimes around Rust&#x27;s unique type system. After several iterations of experimentation, I think we&#x27;ve attained a balance between static &amp; dynamic and compile-time &amp; run-time that it offers benefits of the Rust language while still be familiar and easy-to-work-with for those who come from other languages.</p><p>SeaORM is tentative to be released in Sep 2021 and stabilize in May 2022. We hope that SeaORM will become a go-to choice for working with databases in Rust and that the Rust language will be adopted by more organizations in building applications.</p><p>If you are intrigued like I do, please stay in touch and join the community.</p><p><a href="https://github.com/SeaQL/seaql.github.io/discussions/3">Share your thoughts here</a>.</p>]]></content>
+        <author>
+            <name>Chris Tsang</name>
+            <uri>https://github.com/tyt2y3</uri>
+        </author>
+    </entry>
+</feed>
